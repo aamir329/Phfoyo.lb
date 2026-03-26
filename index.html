@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pure Heart Islamic Foundation | Oyo Local Branch Camp Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(to bottom, #55666e, #162539);
+            color: #fff;
+            text-align: center;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header { padding: 40px 15px; }
+        header img { width: 120px; margin-bottom: 15px; }
+        h1 { margin: 10px 0 5px; font-size: 24px; }
+        h2 { font-weight: normal; font-size: 16px; color: #cbd5e0; letter-spacing: 1px; }
+
+        /* SECTIONS */
+        section { padding: 10px 15px 50px; max-width: 600px; margin: auto; }
+        
+        /* PORTAL CARDS */
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .welcome-msg {
+            font-weight: bold;
+            color: #63b3ed;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* CAMP DETAILS */
+        .theme-text { font-size: 1.2rem; color: #fc8181; font-weight: bold; margin: 10px 0; }
+        .price-box { font-size: 1.1rem; line-height: 1.8; color: #fff; }
+        .price-box b { color: #fbd38d; }
+
+        /* ACTION BUTTONS */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            display: block;
+            padding: 16px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        .btn-buy { background: #e53e3e; } /* Red */
+        .btn-reg { background: #3182ce; } /* Blue */
+        .btn-dash { background: #4a5568; } /* Grey */
+        .btn-check { background: #38a169; } /* Green - Official Use */
+
+        /* SOCIAL BUTTONS */
+        .social-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-s { padding: 10px; font-size: 0.85rem; }
+        .facebook { background: #1877f2; }
+        .whatsapp { background: #25d366; }
+
+        footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            font-size: 13px;
+            color: #a0aec0;
+        }
+
+        .tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <img src="phf-logo.png" alt="PHF Logo">
+    <h1>PHF OYO Local Branch CAMP</h1>
+    <h2>Registration & Membership Portal</h2>
+</header>
+
+<section>
+
+    <div class="card">
+        <span class="welcome-msg">Assalamu Alaykum!</span>
+        <div class="price-box">
+            Standard Price: <b>₦ 0,000</b><br>
+            Workers: <b>₦ 0,000</b>
+        </div>
+        <div class="tag">PMC 2026 Portal</div>
+    </div>
+
+    <div class="nav-grid">
+        <a href="buypin.html" class="btn btn-buy">🛒 Buy Registration PIN</a>
+        <a href="register.html" class="btn btn-reg">📝 Complete Registration</a>
+        <a href="dashboard.html" class="btn btn-dash">👤 My Dashboard</a>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+        <h3>Camp Theme</h3>
+        <p class="theme-text">"Muslim Today: Navigating Life with Guidance"</p>
+        <p style="color:#cbd5e0; font-size: 0.9rem;">
+            📅 April 0 – 0, 2025<br>
+            📍 Oyo State.
+        </p>
+    </div>
+
+    <div class="card">
+        <p style="font-size: 12px; color: #a0aec0; margin-bottom: 10px;">OFFICIAL USE ONLY</p>
+        <a href="checking.html" class="btn btn-check" style="font-size: 0.9rem; padding: 10px;">📷 QR Check-In Scanner</a>
+        <a href="admin.html" style="display:block; margin-top:10px; color:#cbd5e0; font-size: 12px; text-decoration:none;">Admin Login</a>
+    </div>
+
+    <div class="social-grid">
+        <a class="btn btn-s facebook" href="https://www.facebook.com/oyostatePHF/" target="_blank">Facebook</a>
+        <a class="btn btn-s whatsapp" href="https://whatsapp.com/channel/0029Vb7KA8KAO7RQKgfSOQ3u" target="_blank">WhatsApp Channel</a>
+    </div>
+
+</section>
+
+<footer>
+    © 2026 Pure Heart Islamic Foundation – Oyo State Branch<br>
+    All Rights Reserved.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Member Dashboard - PHF Oyo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --phf-blue: #1a237e; --phf-red: #d32f2f; --phf-light: #2196f3; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(to bottom, #55666e, #162539); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #fff; }
+        
+        .dash-card { background: white; color: #333; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
+        .logo { width: 70px; margin-bottom: 15px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; background: #f9f9f9; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-login { background: var(--phf-blue); color: white; }
+        .btn-download { background: #4db6ac; color: white; }
+
+        /* --- ID CARD STYLING (Hidden until login) --- */
+        #id-display-area { display: none; }
+        .id-card {
+            width: 340px; height: 210px; background: white; border-radius: 12px; overflow: hidden;
+            position: relative; border: 1px solid #ddd; text-align: left; margin: 20px auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .id-header { background: var(--phf-blue); color: white; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        .id-header img { width: 30px; height: 30px; background: white; border-radius: 50%; padding: 2px; }
+        .id-body { padding: 12px; display: flex; flex-direction: column; gap: 5px; }
+        .id-label { font-size: 9px; color: #777; font-weight: bold; text-transform: uppercase; }
+        .id-value { font-size: 14px; color: #333; font-weight: bold; }
+        .id-footer { position: absolute; bottom: 0; width: 100%; background: var(--phf-red); color: white; padding: 5px 12px; font-size: 10px; box-sizing: border-box; display: flex; justify-content: space-between; }
+        .house-badge { position: absolute; top: 55px; right: 12px; background: #f5f5f5; padding: 8px; border-radius: 6px; border: 1px solid #eee; text-align: center; width: 105px; }
+        .house-badge b { font-size: 10px; color: var(--phf-red); display: block; }
+    </style>
+</head>
+<body>
+
+<div class="dash-card">
+    <img src="phf-logo.png" class="logo">
+    
+    <div id="login-form">
+        <h2 style="color: var(--phf-blue); margin-top: 0;">Member Login</h2>
+        <p style="font-size: 13px; color: #666;">Login to retrieve your Camp ID Card</p>
+        <input id="email" type="email" placeholder="Email Address used for PIN">
+        <input id="phone" type="tel" placeholder="Phone Number used for PIN">
+        <button class="btn btn-login" onclick="login()">VIEW MY DASHBOARD</button>
+    </div>
+
+    <div id="id-display-area">
+        <h3 id="welcome-msg" style="color: var(--phf-blue); margin-bottom: 5px;">Welcome Back!</h3>
+        
+        <div class="id-card" id="my-id-card">
+            <div class="id-header">
+                <img src="phf-logo.png">
+                <div>
+                    <div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">PHF Oyo State Camp</div>
+                    <div style="font-size: 8px; opacity: 0.9;">NYSC Camp, Iseyin • Dec 2026</div>
+                </div>
+            </div>
+            <div class="id-body">
+                <div>
+                    <div class="id-label">Name</div>
+                    <div class="id-value" id="c-name">---</div>
+                </div>
+                <div>
+                    <div class="id-label">Tag Number</div>
+                    <div class="id-value" id="c-tag" style="color: var(--phf-blue);">---</div>
+                </div>
+                <div>
+                    <div class="id-label">Gender</div>
+                    <div class="id-value" id="c-gender">---</div>
+                </div>
+            </div>
+            <div class="house-badge">
+                <small style="font-size: 7px;">HOUSE</small>
+                <b id="c-house">---</b>
+            </div>
+            <div class="id-footer">
+                <span>OFFICIAL PASS</span>
+                <span>PMC 2026</span>
+            </div>
+        </div>
+
+        <button class="btn btn-download" onclick="downloadID()">💾 DOWNLOAD ID IMAGE</button>
+        <button class="btn" style="background: #757575; color:white;" onclick="location.href='index.html'">LOGOUT</button>
+    </div>
+</div>
+
+<script>
+    firebase.initializeApp({apiKey:"AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",authDomain:"https://phfoyolb.firebaseapp.com",projectId:"phfoyolb"});
+    const db = firebase.firestore();
+    let userData = null;
+
+    async function login() {
+        const email = document.getElementById("email").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+
+        if (!email || !phone) return alert("Please enter both Email and Phone.");
+
+        // 1. First find the PIN info to get the specific PIN string
+        const pinSnap = await db.collection("pins")
+            .where("email", "==", email)
+            .where("phone", "==", phone)
+            .get();
+
+        if (pinSnap.empty) return alert("No record found with these details.");
+
+        const userPin = pinSnap.docs[0].data().pin;
+
+        // 2. Find the Registration record associated with that PIN
+        const regSnap = await db.collection("registrations")
+            .where("pin", "==", userPin)
+            .get();
+
+        if (regSnap.empty) return alert("You have purchased a PIN but haven't registered yet. Please go to the Registration page.");
+
+        userData = regSnap.docs[0].data();
+        
+        // 3. Populate and Show Dashboard
+        document.getElementById("c-name").innerText = userData.name;
+        document.getElementById("c-tag").innerText = userData.tagNumber;
+        document.getElementById("c-gender").innerText = userData.gender;
+        document.getElementById("c-house").innerText = userData.house.toUpperCase();
+        document.getElementById("welcome-msg").innerText = "Assalamu Alaykum, " + userData.name.split(' ')[0];
+
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("id-display-area").style.display = "block";
+    }
+
+    function downloadID() {
+        const card = document.getElementById("my-id-card");
+        const fileName = "PHF_ID_" + userData.name.replace(/\s+/g, '_') + ".png";
+        
+        html2canvas(card, { scale: 3 }).then(canvas => {
+            const link = document.createElement("a");
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>

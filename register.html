@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration & ID Card - PHF Oyo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --phf-blue: #1a237e; --phf-red: #d32f2f; --phf-light: #2196f3; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .reg-card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-reg { background: var(--phf-blue); color: white; }
+        .btn-download { background: #4db6ac; color: white; margin-top: 15px; }
+
+        /* --- ID CARD STYLING --- */
+        #id-card-wrapper { display: none; text-align: center; }
+        .id-card {
+            width: 350px;
+            height: 220px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #ddd;
+            text-align: left;
+            margin: 20px auto;
+        }
+        .id-header { background: var(--phf-blue); color: white; padding: 10px; display: flex; align-items: center; gap: 10px; }
+        .id-header img { width: 35px; height: 35px; background: white; border-radius: 50%; padding: 2px; }
+        .id-header h4 { margin: 0; font-size: 14px; text-transform: uppercase; }
+        
+        .id-body { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .id-label { font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold; }
+        .id-value { font-size: 15px; color: #333; font-weight: bold; margin-bottom: 2px; }
+        
+        .id-footer { position: absolute; bottom: 0; width: 100%; background: var(--phf-red); color: white; padding: 5px 15px; font-size: 11px; box-sizing: border-box; display: flex; justify-content: space-between; }
+        
+        .house-badge { position: absolute; top: 60px; right: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; text-align: center; width: 110px; }
+        .house-badge small { font-size: 8px; color: #666; display: block; }
+        .house-badge b { font-size: 10px; color: var(--phf-red); display: block; line-height: 1.2; margin-top: 3px; }
+
+        .note { font-size: 12px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="reg-card" id="form-container">
+    <img src="phf-logo.png" style="width: 70px; margin-bottom: 10px;">
+    <h2 style="color: var(--phf-blue); margin: 0;">Camp Registration</h2>
+    <p style="font-size: 13px; color: #666;">Enter details to generate your ID Card</p>
+    
+    <input id="pin" placeholder="Enter Purchased PIN">
+    <input id="name" placeholder="Full Name (e.g. Ahmad Musa)">
+    <select id="gender">
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+    </select>
+    <button class="btn btn-reg" onclick="processRegistration()">REGISTER</button>
+</div>
+
+<div id="id-card-wrapper">
+    <div class="id-card" id="my-id-card">
+        <div class="id-header">
+            <img src="phf-logo.png">
+            <div>
+                <h4>PHF Oyo Local Branch Camp</h4>
+                <div style="font-size: 9px; opacity: 0.8;">oyo• 2026</div>
+            </div>
+        </div>
+        
+        <div class="id-body">
+            <div>
+                <div class="id-label">Participant Name</div>
+                <div class="id-value" id="card-name">---</div>
+            </div>
+            <div>
+                <div class="id-label">Tag Number</div>
+                <div class="id-value" id="card-tag" style="color: var(--phf-blue);">---</div>
+            </div>
+            <div>
+                <div class="id-label">Gender</div>
+                <div class="id-value" id="card-gender">---</div>
+            </div>
+        </div>
+
+        <div class="house-badge">
+            <small>ASSIGNED HOUSE</small>
+            <b id="card-house">---</b>
+        </div>
+
+        <div class="id-footer">
+            <span>OFFICIAL CAMP PASS</span>
+            <span>23-27 DEC</span>
+        </div>
+    </div>
+
+    <button class="btn btn-download" onclick="downloadID()">💾 DOWNLOAD ID AS IMAGE</button>
+    <p class="note">ID saved as: <span id="filename-preview"></span></p>
+    <button class="btn btn-reg" style="background:#757575;" onclick="location.href='index.html'">BACK TO PORTAL</button>
+</div>
+
+<script>
+    firebase.initializeApp({apiKey:"AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",authDomain:"https://phfoyolb.firebaseapp.com",projectId:"phfoyolb"});
+    const db = firebase.firestore();
+
+    const maleHouses = ["Yaya Sinwar", "Ismail Haniyeh", "Nizar Awadallah", "Husam Badran"];
+    const femaleHouses = ["Asiya bint Muzahim", "Mary (Maryam)", "Khadija bint Khuwaylid", "Aisha bint Abu Bakr"];
+
+    let globalName = "";
+
+    async function processRegistration() {
+        const pin = document.getElementById("pin").value.trim().toUpperCase();
+        const name = document.getElementById("name").value.trim();
+        const gender = document.getElementById("gender").value;
+
+        if (!pin || !name || !gender) return alert("Please fill all fields.");
+
+        const pinQuery = await db.collection("pins").where("pin", "==", pin).where("used", "==", false).get();
+        if (pinQuery.empty) return alert("Invalid or already used PIN!");
+
+        const pinDocId = pinQuery.docs[0].id;
+        const targetHouses = (gender === "Male") ? maleHouses : femaleHouses;
+        
+        let assignedHouse = "";
+        for (let house of targetHouses) {
+            const count = (await db.collection("registrations").where("house", "==", house).get()).size;
+            if (count < 50) {
+                assignedHouse = house;
+                break;
+            }
+        }
+
+        if (!assignedHouse) return alert("All houses are currently full.");
+
+        const totalReg = (await db.collection("registrations").get()).size;
+        const tag = "PHF-2026-" + (101 + totalReg);
+
+        await db.collection("registrations").add({ name, pin, gender, house: assignedHouse, tagNumber: tag, date: new Date() });
+        await db.collection("pins").doc(pinDocId).update({ used: true });
+
+        // Update ID Card View
+        globalName = name;
+        document.getElementById("card-name").innerText = name;
+        document.getElementById("card-tag").innerText = tag;
+        document.getElementById("card-gender").innerText = gender;
+        document.getElementById("card-house").innerText = assignedHouse.toUpperCase();
+        document.getElementById("filename-preview").innerText = "PHF_ID_" + name.replace(/\s+/g, '_') + ".png";
+        
+        document.getElementById("form-container").style.display = "none";
+        document.getElementById("id-card-wrapper").style.display = "block";
+    }
+
+    function downloadID() {
+        const card = document.getElementById("my-id-card");
+        const fileName = "PHF_ID_" + globalName.replace(/\s+/g, '_') + ".png";
+        
+        html2canvas(card, { useCORS: true, scale: 3 }).then(canvas => {
+            const link = document.createElement("a");
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
