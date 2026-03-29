@@ -1,152 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel - PHF Oyo Camp</title>
+    <title>PHF Oyo Admin - Unified Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        :root { --blue: #1a237e; --red: #d32f2f; --green: #2e7d32; --orange: #f57c00; --teal: #008080; }
+        :root { --blue: #1a237e; --red: #d32f2f; --green: #2e7d32; --teal: #008080; }
         body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: white; padding: 10px; border-radius: 8px; border-left: 4px solid var(--blue); }
+        .stat-box { background: white; padding: 10px; border-radius: 8px; border-left: 4px solid var(--blue); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .stat-box h4 { margin: 0; font-size: 10px; color: #666; text-transform: uppercase; }
         .stat-box p { margin: 5px 0 0; font-size: 16px; font-weight: bold; color: var(--blue); }
-
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
+        .btn-blue { background: var(--blue); }
+        .btn-teal { background: var(--teal); }
+        .btn-red { background: var(--red); }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
         th { background: var(--blue); color: white; padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
-        
-        .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; }
-        .btn-scan { background: var(--red); color: white; }
-        .btn-free { background: var(--teal); color: white; }
-        .btn-edit { background: var(--orange); color: white; }
-        .btn-save { background: var(--green); color: white; width: 100%; margin-top: 10px; padding: 12px; }
-
-        input, select { width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:6px; box-sizing: border-box; }
-
-        /* Modal Styles */
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100; overflow-y: auto; }
-        .modal-content { background:white; width:90%; max-width:400px; margin:30px auto; padding:20px; border-radius:12px; }
     </style>
 </head>
 <body>
 
 <div class="container" id="loginBox">
     <div class="card" style="max-width:300px; margin: 100px auto; text-align: center;">
-        <h2>Admin</h2>
+        <img src="phf-logo.png" style="width: 50px;">
+        <h2>Admin Login</h2>
         <input id="pass" type="password" placeholder="Password">
-        <button class="btn btn-scan" style="width:100%" onclick="login()">Login</button>
+        <button class="btn btn-blue" style="width:100%" onclick="login()">Enter Dashboard</button>
     </div>
 </div>
 
 <div class="container" id="panel" style="display:none">
     <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="color:var(--blue); margin:0;">Camp Admin</h2>
-        <div>
-            <button class="btn btn-free" onclick="openFreePinModal()">➕ CREATE FREE PIN</button>
-            <button class="btn btn-scan" onclick="startCamera()">📷 SCAN CARD</button>
+        <h2 style="color:var(--blue); margin:0;">Camp Management</h2>
+        <button class="btn btn-red" onclick="startCamera()">📷 SCAN ID</button>
+    </div>
+
+    <div class="card" style="border-top: 5px solid var(--teal);">
+        <h3 style="margin-top:0; color:var(--teal);">Create Free Slot</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <input id="freeName" placeholder="Full Name">
+            <input id="freeEmail" placeholder="Email Address">
+            <input id="freePhone" placeholder="Phone Number">
         </div>
+        <button class="btn btn-teal" style="width: 100%; margin-top: 10px;" onclick="generateFreePin()">GENERATE & SAVE FREE PIN</button>
     </div>
 
     <div class="stats-grid" id="stats-area"></div>
+
     <div class="card">
-        <input id="search" onkeyup="filterTable()" placeholder="🔍 Search Name or PIN...">
+        <input id="search" onkeyup="filterTable()" placeholder="🔍 Search Name, PIN, or House...">
         <div style="overflow-x:auto;">
             <table>
-                <thead><tr><th>Name</th><th>House</th><th>PIN</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Name</th><th>House</th><th>PIN</th><th>Status</th></tr></thead>
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<div id="freePinModal" class="modal">
-    <div class="modal-content">
-        <h3>Generate Free Slot</h3>
-        <p style="font-size: 11px; color: #666;">This creates a PIN without requiring payment.</p>
-        <label>Recipient Name</label>
-        <input id="freeName" placeholder="Full Name">
-        <label>Recipient Email</label>
-        <input id="freeEmail" type="email" placeholder="email@example.com">
-        <label>Recipient Phone</label>
-        <input id="freePhone" type="tel" placeholder="080...">
-        
-        <div id="generatedPinBox" style="display:none; background:#e0f2f1; padding:10px; border-radius:5px; text-align:center; margin:10px 0; border:1px dashed #008080;">
-            <small>New PIN Generated:</small>
-            <h2 id="newPinDisplay" style="margin:5px 0; color:#008080;"></h2>
-        </div>
-
-        <button class="btn btn-save" id="genBtn" onclick="generateFreePin()">CREATE PIN & SAVE</button>
-        <button class="btn" style="width:100%; margin-top:10px; background:#ccc;" onclick="closeFreeModal()">CLOSE</button>
-    </div>
-</div>
-
 <script>
-    firebase.initializeApp({apiKey:"AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",authDomain:"phfoyolb.firebaseapp.com",projectId:"phfoyolb"});
+    // INITIALIZE FIREBASE
+    const firebaseConfig = { apiKey: "YOUR_KEY", authDomain: "YOUR_DOMAIN", projectId: "YOUR_ID" };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function login(){
-        if(document.getElementById("pass").value === "PHF2026"){
+    function login() {
+        if(document.getElementById("pass").value === "PHF2026") {
             document.getElementById("loginBox").style.display = "none";
             document.getElementById("panel").style.display = "block";
             loadData();
-        } else { alert("Wrong Password"); }
+        } else { alert("Access Denied"); }
     }
 
-    // --- FREE PIN GENERATOR LOGIC ---
-    function openFreePinModal() {
-        document.getElementById("freePinModal").style.display = "block";
-        document.getElementById("generatedPinBox").style.display = "none";
-        document.getElementById("genBtn").disabled = false;
-    }
-
-    function closeFreeModal() {
-        document.getElementById("freePinModal").style.display = "none";
-    }
-
-    async function generateFreePin() {
-        const name = document.getElementById("freeName").value.trim();
-        const email = document.getElementById("freeEmail").value.trim();
-        const phone = document.getElementById("freePhone").value.trim();
-
-        if(!name || !email || !phone) return alert("Please fill all details for the slot.");
-
-        document.getElementById("genBtn").disabled = true;
+    // LOAD DATA & STATS
+    async function loadData() {
+        const pinsSnap = await db.collection("pins").orderBy("date", "desc").get();
+        const regsSnap = await db.collection("registrations").get();
         
-        // Generate a random PIN format: PHF-XXXXXX
-        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let pinCode = "PHF-";
-        for(let i=0; i<6; i++) pinCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        let html = "";
+        let houseCounts = {};
 
-        try {
-            await db.collection("pins").add({
-                name: name,
-                email: email,
-                phone: phone,
-                pin: pinCode,
-                amount: 0, // 0 for free slot
-                used: false,
-                type: "Free Slot",
-                date: new Date()
-            });
+        // Track house counts from registrations
+        regsSnap.forEach(doc => {
+            const r = doc.data();
+            houseCounts[r.house] = (houseCounts[r.house] || 0) + 1;
+        });
 
-            document.getElementById("newPinDisplay").innerText = pinCode;
-            document.getElementById("generatedPinBox").style.display = "block";
-            alert("Free PIN created successfully!");
-            // Refresh table if needed
-        } catch(e) {
-            alert("Error creating PIN: " + e);
-            document.getElementById("genBtn").disabled = false;
-        }
+        // Populate Table from PINs collection
+        pinsSnap.forEach(doc => {
+            const p = doc.data();
+            html += `<tr>
+                <td><b>${p.name}</b></td>
+                <td>${p.house || 'Not Registered Yet'}</td>
+                <td><code>${p.pin}</code></td>
+                <td>${p.used ? '✅ Registered' : '⏳ Unused'}</td>
+            </tr>`;
+        });
+
+        document.getElementById("tableBody").innerHTML = html;
+        updateStats(houseCounts, regsSnap.size);
     }
 
-    // Include your existing loadData, filterTable, captureText functions here...
-    // (Ensure you add the house count logic and camera logic from previous versions)
+    function updateStats(counts, total) {
+        let statsHtml = `<div class="stat-box"><h4>Total Reg</h4><p>${total}</p></div>`;
+        const houses = ["Yaya Sinwar", "Ismail Haniyeh", "Nizar Awadallah", "Husam Badran", "Asiya bint Muzahim", "Mary (Maryam)", "Khadija bint Khuwaylid", "Aisha bint Abu Bakr"];
+        houses.forEach(h => {
+            statsHtml += `<div class="stat-box"><h4>${h.split(' ')[0]}</h4><p>${counts[h] || 0}/50</p></div>`;
+        });
+        document.getElementById("stats-area").innerHTML = statsHtml;
+    }
+
+    // FREE PIN LOGIC
+    async function generateFreePin() {
+        const name = document.getElementById("freeName").value;
+        const email = document.getElementById("freeEmail").value;
+        const phone = document.getElementById("freePhone").value;
+
+        if(!name || !email || !phone) return alert("Fill all fields");
+
+        const pinCode = "PHF-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+        await db.collection("pins").add({
+            name, email, phone, pin: pinCode,
+            amount: 0, used: false, type: "Free Slot", date: new Date()
+        });
+
+        alert("PIN Created: " + pinCode);
+        loadData(); // Refresh
+    }
+
+    function filterTable() {
+        let val = document.getElementById("search").value.toUpperCase();
+        let rows = document.getElementById("tableBody").getElementsByTagName("tr");
+        for (let row of rows) row.style.display = row.innerText.toUpperCase().includes(val) ? "" : "none";
+    }
 </script>
 </body>
 </html>
