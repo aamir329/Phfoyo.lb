@@ -28,22 +28,24 @@
             border: 1px solid #ddd;
             text-align: left;
             margin: 20px auto;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .id-header { background: var(--phf-blue); color: white; padding: 10px; display: flex; align-items: center; gap: 10px; }
         .id-header img { width: 35px; height: 35px; background: white; border-radius: 50%; padding: 2px; }
-        .id-header h4 { margin: 0; font-size: 14px; text-transform: uppercase; }
+        .id-header h4 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
         
         .id-body { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .id-label { font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold; }
-        .id-value { font-size: 15px; color: #333; font-weight: bold; margin-bottom: 2px; }
+        .id-label { font-size: 9px; color: #777; text-transform: uppercase; font-weight: bold; }
+        .id-value { font-size: 14px; color: #333; font-weight: bold; margin-bottom: 2px; }
         
-        .id-footer { position: absolute; bottom: 0; width: 100%; background: var(--phf-red); color: white; padding: 5px 15px; font-size: 11px; box-sizing: border-box; display: flex; justify-content: space-between; }
+        .id-footer { position: absolute; bottom: 0; width: 100%; background: var(--phf-red); color: white; padding: 5px 15px; font-size: 10px; box-sizing: border-box; display: flex; justify-content: space-between; }
         
         .house-badge { position: absolute; top: 60px; right: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; text-align: center; width: 110px; }
         .house-badge small { font-size: 8px; color: #666; display: block; }
-        .house-badge b { font-size: 10px; color: var(--phf-red); display: block; line-height: 1.2; margin-top: 3px; }
+        .house-badge b { font-size: 9px; color: var(--phf-red); display: block; line-height: 1.2; margin-top: 3px; }
 
         .note { font-size: 12px; color: #666; margin-top: 5px; }
+        #loading { display: none; color: var(--phf-blue); font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -53,14 +55,15 @@
     <h2 style="color: var(--phf-blue); margin: 0;">Camp Registration</h2>
     <p style="font-size: 13px; color: #666;">Enter details to generate your ID Card</p>
     
-    <input id="pin" placeholder="Enter Purchased PIN">
+    <input id="pin" placeholder="Enter PIN (e.g. PHF-XXXXXX)">
     <input id="name" placeholder="Full Name (e.g. Ahmad Musa)">
     <select id="gender">
         <option value="">Select Gender</option>
         <option value="Male">Male</option>
         <option value="Female">Female</option>
     </select>
-    <button class="btn btn-reg" onclick="processRegistration()">REGISTER</button>
+    <div id="loading">Processing... Please wait ⏳</div>
+    <button id="regBtn" class="btn btn-reg" onclick="processRegistration()">REGISTER</button>
 </div>
 
 <div id="id-card-wrapper">
@@ -69,7 +72,7 @@
             <img src="phf-logo.png">
             <div>
                 <h4>PHF Oyo Local Branch Camp</h4>
-                <div style="font-size: 9px; opacity: 0.8;">oyo• 2026</div>
+                <div style="font-size: 9px; opacity: 0.8;">BUILDING HEARTS • 2026</div>
             </div>
         </div>
         
@@ -100,12 +103,22 @@
     </div>
 
     <button class="btn btn-download" onclick="downloadID()">💾 DOWNLOAD ID AS IMAGE</button>
-    <p class="note">ID saved as: <span id="filename-preview"></span></p>
-    <button class="btn btn-reg" style="background:#757575;" onclick="location.href='index.html'">BACK TO PORTAL</button>
+    <p class="note">ID Preview for: <span id="filename-preview"></span></p>
+    <button class="btn btn-reg" style="background:#757575;" onclick="window.location.reload()">REGISTER ANOTHER</button>
 </div>
 
 <script>
-    firebase.initializeApp({apiKey:"AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",authDomain:"https://phfoyolb.firebaseapp.com",projectId:"phfoyolb"});
+    // FIXED FIREBASE CONFIG (Removed https:// from authDomain)
+    const firebaseConfig = {
+        apiKey: "AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",
+        authDomain: "phfoyolb.firebaseapp.com",
+        projectId: "phfoyolb",
+        storageBucket: "phfoyolb.firebasestorage.app",
+        messagingSenderId: "664195426385",
+        appId: "1:664195426385:web:301f22882601b541dfb070"
+    };
+
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const maleHouses = ["Yaya Sinwar", "Ismail Haniyeh", "Nizar Awadallah", "Husam Badran"];
@@ -114,45 +127,85 @@
     let globalName = "";
 
     async function processRegistration() {
-        const pin = document.getElementById("pin").value.trim().toUpperCase();
+        const pinInput = document.getElementById("pin").value.trim().toUpperCase();
         const name = document.getElementById("name").value.trim();
         const gender = document.getElementById("gender").value;
+        const loader = document.getElementById("loading");
+        const btn = document.getElementById("regBtn");
 
-        if (!pin || !name || !gender) return alert("Please fill all fields.");
+        if (!pinInput || !name || !gender) return alert("Please fill all fields.");
 
-        const pinQuery = await db.collection("pins").where("pin", "==", pin).where("used", "==", false).get();
-        if (pinQuery.empty) return alert("Invalid or already used PIN!");
+        loader.style.display = "block";
+        btn.disabled = true;
 
-        const pinDocId = pinQuery.docs[0].id;
-        const targetHouses = (gender === "Male") ? maleHouses : femaleHouses;
-        
-        let assignedHouse = "";
-        for (let house of targetHouses) {
-            const count = (await db.collection("registrations").where("house", "==", house).get()).size;
-            if (count < 50) {
-                assignedHouse = house;
-                break;
+        try {
+            // 1. PIN Check
+            const pinQuery = await db.collection("pins").where("pin", "==", pinInput).get();
+            
+            if (pinQuery.empty) {
+                alert("❌ Invalid PIN. Please check the code.");
+                loader.style.display = "none";
+                btn.disabled = false;
+                return;
             }
+
+            const pinDoc = pinQuery.docs[0];
+            if (pinDoc.data().used === true) {
+                alert("⚠️ This PIN has already been used!");
+                loader.style.display = "none";
+                btn.disabled = false;
+                return;
+            }
+
+            // 2. House Assignment
+            const targetHouses = (gender === "Male") ? maleHouses : femaleHouses;
+            let assignedHouse = "";
+
+            for (let house of targetHouses) {
+                const count = (await db.collection("registrations").where("house", "==", house).get()).size;
+                if (count < 50) {
+                    assignedHouse = house;
+                    break;
+                }
+            }
+
+            if (!assignedHouse) {
+                alert("All houses for your gender are full.");
+                loader.style.display = "none";
+                btn.disabled = false;
+                return;
+            }
+
+            // 3. Finalize Registration
+            const totalReg = (await db.collection("registrations").get()).size;
+            const tag = "PHF-2026-" + (101 + totalReg);
+
+            // Using Batch to ensure both happen or neither happens
+            const batch = db.batch();
+            const regRef = db.collection("registrations").doc();
+            batch.set(regRef, { name, pin: pinInput, gender, house: assignedHouse, tagNumber: tag, date: new Date() });
+            batch.update(pinDoc.ref, { used: true });
+
+            await batch.commit();
+
+            // 4. Update ID Card View
+            globalName = name;
+            document.getElementById("card-name").innerText = name;
+            document.getElementById("card-tag").innerText = tag;
+            document.getElementById("card-gender").innerText = gender;
+            document.getElementById("card-house").innerText = assignedHouse.toUpperCase();
+            document.getElementById("filename-preview").innerText = name;
+            
+            document.getElementById("form-container").style.display = "none";
+            document.getElementById("id-card-wrapper").style.display = "block";
+
+        } catch (error) {
+            console.error(error);
+            alert("Database Error: " + error.message);
+        } finally {
+            loader.style.display = "none";
+            btn.disabled = false;
         }
-
-        if (!assignedHouse) return alert("All houses are currently full.");
-
-        const totalReg = (await db.collection("registrations").get()).size;
-        const tag = "PHF-2026-" + (101 + totalReg);
-
-        await db.collection("registrations").add({ name, pin, gender, house: assignedHouse, tagNumber: tag, date: new Date() });
-        await db.collection("pins").doc(pinDocId).update({ used: true });
-
-        // Update ID Card View
-        globalName = name;
-        document.getElementById("card-name").innerText = name;
-        document.getElementById("card-tag").innerText = tag;
-        document.getElementById("card-gender").innerText = gender;
-        document.getElementById("card-house").innerText = assignedHouse.toUpperCase();
-        document.getElementById("filename-preview").innerText = "PHF_ID_" + name.replace(/\s+/g, '_') + ".png";
-        
-        document.getElementById("form-container").style.display = "none";
-        document.getElementById("id-card-wrapper").style.display = "block";
     }
 
     function downloadID() {
