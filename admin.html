@@ -1,38 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>PHF Oyo Admin - Unified Panel</title>
+    <meta charset="UTF-8">
+    <title>PHF Oyo Admin - Master Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <style>
         :root { --blue: #1a237e; --red: #d32f2f; --green: #2e7d32; --teal: #008080; }
-        body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 1000px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: white; padding: 10px; border-radius: 8px; border-left: 4px solid var(--blue); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: white; padding: 12px; border-radius: 10px; border-left: 5px solid var(--blue); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .stat-box h4 { margin: 0; font-size: 10px; color: #666; text-transform: uppercase; }
-        .stat-box p { margin: 5px 0 0; font-size: 16px; font-weight: bold; color: var(--blue); }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
+        .stat-box p { margin: 5px 0 0; font-size: 18px; font-weight: bold; color: var(--blue); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
         .btn-blue { background: var(--blue); }
         .btn-teal { background: var(--teal); }
         .btn-red { background: var(--red); }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
-        th { background: var(--blue); color: white; padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #eee; }
+        #camera-ui { display: none; background: #000; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; color: white; }
+        video { width: 100%; max-width: 400px; border-radius: 10px; border: 2px solid var(--teal); }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th { background: var(--blue); color: white; padding: 15px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container" id="loginBox">
-    <div class="card" style="max-width:300px; margin: 100px auto; text-align: center;">
-        <img src="phf-logo.png" style="width: 50px;">
+    <div class="card" style="max-width:350px; margin: 100px auto; text-align: center;">
         <h2>Admin Login</h2>
         <input id="pass" type="password" placeholder="Password">
-        <button class="btn btn-blue" style="width:100%" onclick="login()">Enter Dashboard</button>
+        <button class="btn btn-blue" style="width:100%" onclick="login()">LOGIN</button>
     </div>
 </div>
 
@@ -42,20 +46,25 @@
         <button class="btn btn-red" onclick="startCamera()">📷 SCAN ID</button>
     </div>
 
+    <div id="camera-ui">
+        <video id="video" playsinline></video>
+        <p id="status">Align PIN in center</p>
+        <button class="btn btn-teal" onclick="captureAndOCR()">READ CARD</button>
+        <button class="btn" onclick="stopCamera()" style="background:#444;">CLOSE</button>
+    </div>
+
     <div class="card" style="border-top: 5px solid var(--teal);">
-        <h3 style="margin-top:0; color:var(--teal);">Create Free Slot</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-            <input id="freeName" placeholder="Full Name">
-            <input id="freeEmail" placeholder="Email Address">
-            <input id="freePhone" placeholder="Phone Number">
-        </div>
-        <button class="btn btn-teal" style="width: 100%; margin-top: 10px;" onclick="generateFreePin()">GENERATE & SAVE FREE PIN</button>
+        <h3 style="color:var(--teal); margin-top:0;">Create Free PIN Slot</h3>
+        <input id="freeName" placeholder="Full Name">
+        <input id="freeEmail" placeholder="Email">
+        <input id="freePhone" placeholder="Phone Number">
+        <button class="btn btn-teal" style="width:100%" onclick="generateFreePin()">GENERATE PIN</button>
     </div>
 
     <div class="stats-grid" id="stats-area"></div>
 
     <div class="card">
-        <input id="search" onkeyup="filterTable()" placeholder="🔍 Search Name, PIN, or House...">
+        <input id="search" onkeyup="filterTable()" placeholder="🔍 Search Name or PIN...">
         <div style="overflow-x:auto;">
             <table>
                 <thead><tr><th>Name</th><th>House</th><th>PIN</th><th>Status</th></tr></thead>
@@ -66,58 +75,30 @@
 </div>
 
 <script>
-    // INITIALIZE FIREBASE
-    const firebaseConfig = { apiKey: "YOUR_KEY", authDomain: "YOUR_DOMAIN", projectId: "YOUR_ID" };
+    // 1. Firebase Initialization with your specific config
+    const firebaseConfig = {
+        apiKey: "AIzaSyCcGV_sUqfPBrzfHUHAfeWlcP4JKy2gOKY",
+        authDomain: "phfoyolb.firebaseapp.com",
+        projectId: "phfoyolb",
+        storageBucket: "phfoyolb.firebasestorage.app",
+        messagingSenderId: "664195426385",
+        appId: "1:664195426385:web:301f22882601b541dfb070",
+        measurementId: "G-C6GZXBY5V8"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    let videoStream = null;
 
     function login() {
         if(document.getElementById("pass").value === "PHF2026") {
             document.getElementById("loginBox").style.display = "none";
             document.getElementById("panel").style.display = "block";
             loadData();
-        } else { alert("Access Denied"); }
+        } else { alert("Wrong Password"); }
     }
 
-    // LOAD DATA & STATS
-    async function loadData() {
-        const pinsSnap = await db.collection("pins").orderBy("date", "desc").get();
-        const regsSnap = await db.collection("registrations").get();
-        
-        let html = "";
-        let houseCounts = {};
-
-        // Track house counts from registrations
-        regsSnap.forEach(doc => {
-            const r = doc.data();
-            houseCounts[r.house] = (houseCounts[r.house] || 0) + 1;
-        });
-
-        // Populate Table from PINs collection
-        pinsSnap.forEach(doc => {
-            const p = doc.data();
-            html += `<tr>
-                <td><b>${p.name}</b></td>
-                <td>${p.house || 'Not Registered Yet'}</td>
-                <td><code>${p.pin}</code></td>
-                <td>${p.used ? '✅ Registered' : '⏳ Unused'}</td>
-            </tr>`;
-        });
-
-        document.getElementById("tableBody").innerHTML = html;
-        updateStats(houseCounts, regsSnap.size);
-    }
-
-    function updateStats(counts, total) {
-        let statsHtml = `<div class="stat-box"><h4>Total Reg</h4><p>${total}</p></div>`;
-        const houses = ["Yaya Sinwar", "Ismail Haniyeh", "Nizar Awadallah", "Husam Badran", "Asiya bint Muzahim", "Mary (Maryam)", "Khadija bint Khuwaylid", "Aisha bint Abu Bakr"];
-        houses.forEach(h => {
-            statsHtml += `<div class="stat-box"><h4>${h.split(' ')[0]}</h4><p>${counts[h] || 0}/50</p></div>`;
-        });
-        document.getElementById("stats-area").innerHTML = statsHtml;
-    }
-
-    // FREE PIN LOGIC
+    // 2. Generate PIN Function
     async function generateFreePin() {
         const name = document.getElementById("freeName").value;
         const email = document.getElementById("freeEmail").value;
@@ -127,13 +108,67 @@
 
         const pinCode = "PHF-" + Math.random().toString(36).substr(2, 6).toUpperCase();
 
-        await db.collection("pins").add({
-            name, email, phone, pin: pinCode,
-            amount: 0, used: false, type: "Free Slot", date: new Date()
-        });
+        try {
+            await db.collection("pins").add({
+                name: name, email: email, phone: phone, pin: pinCode,
+                amount: 0, used: false, type: "Free Slot", date: new Date()
+            });
+            alert("PIN Generated: " + pinCode);
+            loadData();
+        } catch(e) { alert("Error: " + e.message); }
+    }
 
-        alert("PIN Created: " + pinCode);
-        loadData(); // Refresh
+    // 3. Load Data & Stats
+    async function loadData() {
+        const pins = await db.collection("pins").orderBy("date", "desc").get();
+        const regs = await db.collection("registrations").get();
+        
+        let houseCounts = {};
+        regs.forEach(doc => { houseCounts[doc.data().house] = (houseCounts[doc.data().house] || 0) + 1; });
+
+        let html = "";
+        pins.forEach(doc => {
+            const p = doc.data();
+            html += `<tr><td>${p.name}</td><td>${p.house || 'Unused'}</td><td>${p.pin}</td><td>${p.used ? '✅' : '⏳'}</td></tr>`;
+        });
+        document.getElementById("tableBody").innerHTML = html;
+        updateStats(houseCounts, regs.size);
+    }
+
+    function updateStats(counts, total) {
+        let statsHtml = `<div class="stat-box"><h4>Total</h4><p>${total}</p></div>`;
+        ["Yaya Sinwar", "Ismail Haniyeh", "Nizar Awadallah", "Husam Badran", "Asiya bint Muzahim", "Mary (Maryam)", "Khadija bint Khuwaylid", "Aisha bint Abu Bakr"].forEach(h => {
+            statsHtml += `<div class="stat-box"><h4>${h.split(' ')[0]}</h4><p>${counts[h] || 0}/50</p></div>`;
+        });
+        document.getElementById("stats-area").innerHTML = statsHtml;
+    }
+
+    // 4. Scanner Logic
+    async function startCamera() {
+        document.getElementById("camera-ui").style.display = "block";
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        document.getElementById("video").srcObject = videoStream;
+        document.getElementById("video").play();
+    }
+
+    function stopCamera() {
+        if(videoStream) videoStream.getTracks().forEach(t => t.stop());
+        document.getElementById("camera-ui").style.display = "none";
+    }
+
+    async function captureAndOCR() {
+        const v = document.getElementById("video");
+        const canvas = document.createElement("canvas");
+        canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+        canvas.getContext("2d").drawImage(v, 0, 0);
+        document.getElementById("status").innerText = "Scanning...";
+        const res = await Tesseract.recognize(canvas.toDataURL(), 'eng');
+        const match = res.data.text.match(/PHF-[A-Z0-9]{6}/);
+        if(match) {
+            document.getElementById("search").value = match[0];
+            filterTable();
+            stopCamera();
+        } else { document.getElementById("status").innerText = "Not found, try again"; }
     }
 
     function filterTable() {
